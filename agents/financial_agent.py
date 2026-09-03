@@ -1,14 +1,15 @@
 import os
 
 from dotenv import load_dotenv
-from langchain_core.messages import SystemMessage
 from langchain_openrouter import ChatOpenRouter
 from langgraph.graph import MessagesState, StateGraph, START, END
 from pydantic import BaseModel, Field
 
+from models.stock import StockDetails
+from models.financial_metrics import FinancialMetrics
 from tools.company_resolver import resolve_company
 from tools.stock_market import get_stock_details
-from models.stock import StockDetails
+from tools.financial_metrics import calculate_financial_metrics
 
 
 load_dotenv()
@@ -40,6 +41,7 @@ class StockState(MessagesState):
     company_name: str
     symbol: str
     stock_data: StockDetails
+    financial_metrics: FinancialMetrics
     resolution_error: str
 
 
@@ -98,36 +100,39 @@ def get_stock_details_node(state: StockState):
     }
 
 
-def analyze_stock(state: StockState):
-    stock_data = state["stock_data"]
+def calculate_metrics_node(state: StockState):
+    result = calculate_financial_metrics(
+        state["stock_data"]
+    )
 
-    response = model.invoke([
-        *state["messages"],
-        SystemMessage(
-            content=(
-                "You are a financial analyst. "
-                "Analyze only the stock data provided below and answer "
-                "the user's original question.\n\n"
-                f"Stock data:\n{stock_data.model_dump_json(indent=2)}"
+    if result["status"] != "success":
+        raise ValueError(
+            result.get(
+                "reason",
+                "Unable to calculate financial metrics."
             )
-        ),
-    ])
+        )
 
+    metrics = FinancialMetrics(
+        **result["metrics"],
+        cash_flow_trends=result["cash_flow_trends"],
+    )
+    print("Financial metrics:", metrics)
     return {
-        "messages": [response]
+        "financial_metrics": metrics
     }
 
 
 graph = StateGraph(StockState)
 
-graph.add_node("extract_company",extract_company)
-graph.add_node("resolve_company",resolve_symbol_node)
-graph.add_node("get_stock_details",get_stock_details_node)
-graph.add_node("analyze_stock",analyze_stock)
-graph.add_node("ask_user",ask_user)
+graph.add_node("extract_company", extract_company)
+graph.add_node("resolve_company", resolve_symbol_node)
+graph.add_node("get_stock_details", get_stock_details_node)
+graph.add_node("calculate_metrics", calculate_metrics_node)
+graph.add_node("ask_user", ask_user)
 
-graph.add_edge(START,"extract_company")
-graph.add_edge("extract_company","resolve_company")
+graph.add_edge(START, "extract_company")
+graph.add_edge("extract_company", "resolve_company")
 
 graph.add_conditional_edges(
     "resolve_company",
@@ -138,8 +143,8 @@ graph.add_conditional_edges(
     },
 )
 
-graph.add_edge("get_stock_details","analyze_stock")
-graph.add_edge("analyze_stock",END)
-graph.add_edge("ask_user",END)
+graph.add_edge("get_stock_details", "calculate_metrics")
+graph.add_edge("calculate_metrics", END)
+graph.add_edge("ask_user", END)
 
 app = graph.compile()
