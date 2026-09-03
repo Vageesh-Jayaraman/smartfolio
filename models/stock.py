@@ -65,8 +65,16 @@ class StockDetails(BaseModel):
     industry: Optional[str] = None
     companyProfile: Optional[CompanyProfile] = None
     currentPrice: Optional[CurrentPrice] = None
+
     stockTechnicalData: list[TechnicalData] = Field(default_factory=list)
+
     percentChange: Optional[str] = None
     yearHigh: Optional[str] = None
     yearLow: Optional[str] = None
+
     financials: list[FinancialPeriod] = Field(default_factory=list)
+
+    @field_validator("stockTechnicalData", "financials", mode="before")
+    @classmethod
+    def none_to_empty_list(cls, value):
+        return value or []
