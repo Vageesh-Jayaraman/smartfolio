@@ -5,9 +5,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openrouter import ChatOpenRouter
 
 from models.news_plan import NewsPlan
-from prompts.news_analyst import NEWS_ANALYST_PROMPT
 from prompts.news_planner import NEWS_PLANNER_PROMPT
-from tools.company_resolver import resolve_company
 from tools.news_search import search_news
 
 load_dotenv()
@@ -18,47 +16,26 @@ planner_model = ChatOpenRouter(
     api_key=os.getenv("OPENROUTER_API_KEY"),
 ).with_structured_output(NewsPlan)
 
-analyst_model = ChatOpenRouter(
-    model="z-ai/glm-5.2",
-    temperature=0,
-    api_key=os.getenv("OPENROUTER_API_KEY"),
-    openrouter_provider={"order": ["Baidu Qianfan"]},
-)
 
+def create_news_plan(user_question: str, company_name: str) -> NewsPlan:
 
-def create_news_plan(user_question: str) -> NewsPlan:
     return planner_model.invoke(
         [
             SystemMessage(content=NEWS_PLANNER_PROMPT),
-            HumanMessage(content=user_question),
+            HumanMessage(
+                content=(
+                    f"Company: {company_name}\n"
+                    f"User question: {user_question}"
+                )
+            ),
         ]
     )
 
 
-def resolve_news_plan(news_plan: NewsPlan):
-    if not news_plan.company_name:
-        return news_plan, None
-
-    result = resolve_company.invoke(
-        {"company_name": news_plan.company_name}
-    )
-
-    if result["status"] != "success":
-        raise ValueError(
-            f"Could not resolve company: {news_plan.company_name}"
-        )
-
-    company = result["matches"][0]["symbol"]
-    return news_plan, company
-
-
-def retrieve_news(
-        news_plan: NewsPlan,
-        max_results: int = 5,
-):
+def retrieve_news(news_plan: NewsPlan, max_results: int = 5):
     evidence = []
 
-    for i, task in enumerate(news_plan.tasks, start=1):
+    for i, task in enumerate(news_plan.tasks):
         print(
             f"\nSearching task {i}/{len(news_plan.tasks)}: "
             f"{task.topic}"
@@ -81,7 +58,6 @@ def retrieve_news(
         print(f"Retrieved {len(results)} articles")
 
     return evidence
-
 
 def format_news_evidence(evidence):
     formatted = []
@@ -107,53 +83,32 @@ def format_news_evidence(evidence):
     return "\n".join(formatted)
 
 
-def synthesize_news(
+def research_news(
         user_question: str,
-        news_plan: NewsPlan,
-        evidence,
+        company_name: str,
+        symbol: str,
 ):
-    evidence_text = format_news_evidence(evidence)
+    print("\nCreating news plan...")
 
-    response = analyst_model.invoke(
-        [
-            SystemMessage(content=NEWS_ANALYST_PROMPT),
-            HumanMessage(
-                content=(
-                    f"USER QUESTION:\n{user_question}\n\n"
-                    f"NEWS PLAN:\n{news_plan}\n\n"
-                    f"NEWS EVIDENCE:\n{evidence_text}"
-                )
-            ),
-        ]
+    news_plan = create_news_plan(
+        user_question=user_question,
+        company_name=company_name,
     )
 
-    return response.content
-
-
-def research_news(user_question: str):
-    print("\nAnalyzing query...")
-
-    news_plan = create_news_plan(user_question)
-
     print("\nNews plan:")
+
     for i, task in enumerate(news_plan.tasks, start=1):
-        print(f"{i}. {task.topic} -> {task.search_query}")
+        print(
+            f"{i}. {task.topic}"
+            f" -> {task.search_query}"
+        )
 
-    news_plan, company = resolve_news_plan(news_plan)
-
-    if company:
-        print(f"\nResolved company: {company}")
+    print(f"\nCompany: {company_name}")
+    print(f"Symbol: {symbol}")
 
     evidence = retrieve_news(
         news_plan=news_plan,
         max_results=5,
     )
-
     print(f"\nTotal articles retrieved: {len(evidence)}")
-    print("\nSending evidence to analyst model...")
-
-    return synthesize_news(
-        user_question=user_question,
-        news_plan=news_plan,
-        evidence=evidence,
-    )
+    return evidence
