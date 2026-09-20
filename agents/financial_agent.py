@@ -1,6 +1,7 @@
 from typing import TypedDict
 
 from langgraph.graph import StateGraph, START, END
+from langsmith import traceable
 
 from models.stock import StockDetails
 from models.financial_metrics import FinancialMetrics
@@ -58,6 +59,7 @@ graph.add_edge("calculate_metrics", END)
 
 app = graph.compile()
 
+@traceable(name="Financial Agent")
 def financial(company_name: str, symbol: str):
     result = app.invoke({
         "company_name": company_name,

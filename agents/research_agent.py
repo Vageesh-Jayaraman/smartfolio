@@ -2,6 +2,8 @@ import os
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openrouter import ChatOpenRouter
+from langsmith import traceable
+
 from models.research_plan import ResearchPlan
 from prompts.research_planner import RESEARCH_PLANNER_PROMPT
 from rag.embeddings import embed_query
@@ -91,7 +93,7 @@ def format_evidence(evidence):
 
     return "\n".join(formatted)
 
-
+@traceable(name="Research Agent")
 def research(
         user_question: str,
         company_name: str,

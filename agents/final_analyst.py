@@ -3,6 +3,7 @@ import os
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openrouter import ChatOpenRouter
+from langsmith import traceable
 
 from prompts.final_analyst import FINAL_ANALYST_PROMPT
 
@@ -84,7 +85,7 @@ def format_news_evidence(evidence):
 
     return "NEWS EVIDENCE:\n" + "\n".join(formatted)
 
-
+@traceable(name="Final Analyst")
 def analyze(
         user_question: str,
         company_name: str,

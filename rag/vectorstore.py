@@ -3,6 +3,7 @@ import uuid
 
 from dotenv import load_dotenv
 from langchain_core.documents import Document
+from langsmith import traceable
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import MatchAny
 from qdrant_client.models import Distance, VectorParams, PointStruct
@@ -36,6 +37,7 @@ def create_collection(vector_size: int):
 
     print(f"Created collection: {COLLECTION_NAME}")
 
+@traceable(name="Qdrant Retrieval")
 def search_documents(
         query_vector: list[float],
         company: str | None = None,

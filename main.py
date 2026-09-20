@@ -1,3 +1,5 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 from agents.supervisor import supervise
 from agents.financial_agent import financial
 from agents.research_agent import research
@@ -21,35 +23,44 @@ def run(user_question: str):
     print(f"Symbol: {symbol}")
     print(f"Agents: {agents}")
 
-    financial_result = None
-    research_result = None
-    news_result = None
+    results = {
+        "financial": None,
+        "research": None,
+        "news": None,
+    }
 
-    if "financial" in agents:
-        print("\nRunning financial agent...")
+    futures = {}
 
-        financial_result = financial(
-            company_name=company_name,
-            symbol=symbol,
-        )
+    with ThreadPoolExecutor(max_workers=3) as executor:
 
-    if "research" in agents:
-        print("\nRunning research agent...")
+        if "financial" in agents:
+            print("\nStarting financial agent...")
+            futures["financial"] = executor.submit(
+                financial,
+                company_name=company_name,
+                symbol=symbol,
+            )
 
-        research_result = research(
-            user_question=user_question,
-            company_name=company_name,
-            symbol=symbol,
-        )
+        if "research" in agents:
+            print("\nStarting research agent...")
+            futures["research"] = executor.submit(
+                research,
+                user_question=user_question,
+                company_name=company_name,
+                symbol=symbol,
+            )
 
-    if "news" in agents:
-        print("\nRunning news agent...")
+        if "news" in agents:
+            print("\nStarting news agent...")
+            futures["news"] = executor.submit(
+                research_news,
+                user_question=user_question,
+                company_name=company_name,
+                symbol=symbol,
+            )
 
-        news_result = research_news(
-            user_question=user_question,
-            company_name=company_name,
-            symbol=symbol,
-        )
+        for agent_name, future in futures.items():
+            results[agent_name] = future.result()
 
     print("\nRunning final analyst...")
 
@@ -57,9 +68,9 @@ def run(user_question: str):
         user_question=user_question,
         company_name=company_name,
         symbol=symbol,
-        financial=financial_result,
-        research=research_result,
-        news=news_result,
+        financial=results["financial"],
+        research=results["research"],
+        news=results["news"],
     )
 
     return answer

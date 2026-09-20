@@ -3,6 +3,7 @@ import os
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openrouter import ChatOpenRouter
+from langsmith import traceable
 
 from models.supervisor import SupervisorPlan
 from prompts.supervisor import SUPERVISOR_PROMPT
@@ -48,6 +49,7 @@ def resolve_symbol(plan: SupervisorPlan):
         "symbol": result["matches"][0]["symbol"],
     }
 
+@traceable(name="Supervisor")
 def supervise(user_question: str):
     plan = create_supervisor_plan(user_question)
     resolution = resolve_symbol(plan)

@@ -15,4 +15,5 @@ dependencies = [
     "langchain-docling[local]>=3.0.0",
     "qdrant-client[fastembed]>=1.19.0",
     "tavily-python>=0.8.4",
+    "langsmith>=0.12.0",
 ]

@@ -3,6 +3,7 @@ import os
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openrouter import ChatOpenRouter
+from langsmith import traceable
 
 from models.news_plan import NewsPlan
 from prompts.news_planner import NEWS_PLANNER_PROMPT
@@ -82,7 +83,7 @@ def format_news_evidence(evidence):
 
     return "\n".join(formatted)
 
-
+@traceable(name="News Agent")
 def research_news(
         user_question: str,
         company_name: str,
