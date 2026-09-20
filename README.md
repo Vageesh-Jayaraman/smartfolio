@@ -25,3 +25,11 @@
 - Parallel execution of independent agents
 - Cross-source synthesis with LLMs
 - End-to-end observability with LangSmith
+
+---
+
+## System Architecture
+
+![architecture.png](architecture.png)
+
+--- 
