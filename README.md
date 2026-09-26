@@ -32,4 +32,54 @@
 
 ![architecture.png](architecture.png)
 
---- 
+---
+
+## Installation
+
+```bash
+uv venv
+source .venv/bin/activate
+uv pip install -e .
+```
+
+Create a `.env` file:
+
+```dotenv
+OPENROUTER_API_KEY=...
+TAVILY_API_KEY=...
+INDIAN_API_KEY=...
+QDRANT_URL=...
+QDRANT_API_KEY=...
+```
+
+## Usage
+
+Ask a question about a single company:
+
+```bash
+smartfolio "How are Wipro's financials looking?"
+```
+
+```bash
+smartfolio "What are the recent risks for HCL Technologies?"
+```
+
+Save the analysis to a file:
+
+```bash
+smartfolio "What are the recent risks for HCL Technologies?" -o analysis.txt
+```
+
+View available options:
+
+```bash
+smartfolio --help
+```
+
+Check the installed version:
+
+```bash
+smartfolio --version
+```
+
+---

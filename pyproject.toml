@@ -17,3 +17,19 @@ dependencies = [
     "tavily-python>=0.8.4",
     "langsmith>=0.12.0",
 ]
+
+[project.scripts]
+smartfolio = "main:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["main"]
+
+[tool.setuptools.packages.find]
+include = ["agents*", "docs*", "models*", "prompts*", "rag*", "tools*"]
+
+[tool.setuptools.package-data]
+docs = ["EQUITY_L.csv", "financials/**/*.pdf"]
